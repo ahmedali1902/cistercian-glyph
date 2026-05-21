@@ -1,6 +1,6 @@
 import { type KeyboardEvent, useMemo, useState } from 'react';
-import { clampGlyphNumber, getGlyphPaths } from '../cistercian';
-import { MAX_GLYPH_VALUE } from '../constants';
+import { clampGlyphNumber, getGlyphPaths } from '../glyph/cistercian';
+import { MAX_GLYPH_VALUE } from '../glyph/constants';
 import { normalizeInputValue } from '../utils/normalizeInput';
 
 export const useGlyphInput = () => {

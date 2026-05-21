@@ -1,7 +1,7 @@
 import { forwardRef } from 'react';
-import { type GlyphPath, pointsToPathD } from '../cistercian';
-import { GLYPH_STROKE_WIDTH } from '../constants';
-import { SVG_VIEWBOX, VIEWBOX_SIZE } from '../glyphGeometry';
+import { type GlyphPath, pointsToPathD } from '../glyph/cistercian';
+import { GLYPH_STROKE_WIDTH } from '../glyph/constants';
+import { SVG_VIEWBOX, VIEWBOX_SIZE } from '../glyph/glyphGeometry';
 import { InvalidGlyph } from './InvalidGlyph';
 
 type CistercianGlyphProps = {

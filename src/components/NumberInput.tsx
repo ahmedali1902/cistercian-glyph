@@ -1,5 +1,5 @@
 import { type KeyboardEvent } from 'react';
-import { MAX_GLYPH_VALUE } from '../constants';
+import { MAX_GLYPH_VALUE } from '../glyph/constants';
 
 type NumberInputProps = {
   value: string;

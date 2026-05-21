@@ -2,7 +2,7 @@
 
 This document defines the geometric and compositional rules for rendering Cistercian numerals in this project. All coordinate math, SVG layout, and digit encoding should conform to these assumptions.
 
-Implementation lives in `src/glyphGeometry.ts` (grid constants) and `src/cistercian.ts` (digit paths).
+Implementation lives in `src/glyph/glyphGeometry.ts` (grid constants) and `src/glyph/cistercian.ts` (digit paths).
 
 ## Overall proportions
 
@@ -75,7 +75,7 @@ The **ones quadrant** (upper-right) defines the canonical digit shapes. The othe
 
 ## Coordinate model
 
-The SVG uses a **1:1 viewBox** (`0 0 100 100`). The glyph grid is mapped into it as follows (`src/glyphGeometry.ts`):
+The SVG uses a **1:1 viewBox** (`0 0 100 100`). The glyph grid is mapped into it as follows (`src/glyph/glyphGeometry.ts`):
 
 | Constant            | Value | Meaning                                      |
 |---------------------|-------|----------------------------------------------|
@@ -102,11 +102,11 @@ Quadrant bounds (in viewBox units):
 | Thousands  | 20 – 50   | 65 – 95    |
 | Hundreds   | 50 – 80   | 65 – 95    |
 
-Digit paths are authored in the **ones** template using anchor points on the stem (`STEM_X`), the outer edge (`OUTER_X`), and the upper-row top/bottom (`TOP_Y`, `UPPER_ROW_BOTTOM_Y`). Other quadrants mirror via `QUADRANT_TRANSFORMS` in `src/cistercian.ts`.
+Digit paths are authored in the **ones** template using anchor points on the stem (`STEM_X`), the outer edge (`OUTER_X`), and the upper-row top/bottom (`TOP_Y`, `UPPER_ROW_BOTTOM_Y`). Other quadrants mirror via `QUADRANT_TRANSFORMS` in `src/glyph/cistercian.ts`.
 
 ## Export
 
-Copied PNGs are **1:1 squares** at 320×320 px (`SVG_SIZE` in `src/constants.ts`), preserving the same centered 2:3 glyph as the preview.
+Copied PNGs are **1:1 squares** at 320×320 px (`SVG_SIZE` in `src/glyph/constants.ts`), preserving the same centered 2:3 glyph as the preview.
 
 ## Summary
 

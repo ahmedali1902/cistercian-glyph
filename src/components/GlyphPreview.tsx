@@ -1,5 +1,5 @@
 import { type RefObject } from 'react';
-import { type GlyphPath } from '../cistercian';
+import { type GlyphPath } from '../glyph/cistercian';
 import { CistercianGlyph } from './CistercianGlyph';
 import { CopyGlyphButton } from './CopyGlyphButton';
 
