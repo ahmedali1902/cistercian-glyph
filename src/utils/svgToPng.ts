@@ -1,5 +1,6 @@
 import { SVG_SIZE } from '../constants';
 
+/** Renders the 1:1 viewBox SVG to a square transparent PNG. @see docs/glyph-system.md */
 export const svgToTransparentPngBlob = async (svg: SVGSVGElement): Promise<Blob> => {
   const clone = svg.cloneNode(true) as SVGSVGElement;
   clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');

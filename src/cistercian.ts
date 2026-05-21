@@ -1,3 +1,19 @@
+/**
+ * Cistercian numeral geometry and path generation.
+ *
+ * @see docs/glyph-system.md
+ * @see glyphGeometry.ts
+ */
+import {
+  BOTTOM_Y,
+  OUTER_X,
+  QUADRANT_REFLECT_Y,
+  STEM_X,
+  TOP_Y,
+  UPPER_ROW_BOTTOM_Y,
+  type QuadrantId,
+} from './glyphGeometry';
+
 export type GlyphLine = {
   id: string;
   x1: number;
@@ -16,79 +32,70 @@ export type GlyphPath = {
   points: GlyphPoint[];
 };
 
-type Quadrant = 'ones' | 'tens' | 'hundreds' | 'thousands';
-
-const CENTER_X = 50;
-const CENTER_Y = 50;
-const TOP_Y = 5;
-const UPPER_SEGMENT_END_Y = 35;
-const BOTTOM_Y = 95;
-const OUTER_X = 80;
-
 const BASE_DIGIT_PATHS: Record<number, GlyphPoint[][]> = {
   0: [],
   1: [
     [
-      { x: CENTER_X, y: TOP_Y },
+      { x: STEM_X, y: TOP_Y },
       { x: OUTER_X, y: TOP_Y },
     ],
   ],
   2: [
     [
-      { x: CENTER_X, y: UPPER_SEGMENT_END_Y },
-      { x: OUTER_X, y: UPPER_SEGMENT_END_Y },
+      { x: STEM_X, y: UPPER_ROW_BOTTOM_Y },
+      { x: OUTER_X, y: UPPER_ROW_BOTTOM_Y },
     ],
   ],
   3: [
     [
-      { x: CENTER_X, y: TOP_Y },
-      { x: OUTER_X, y: UPPER_SEGMENT_END_Y },
+      { x: STEM_X, y: TOP_Y },
+      { x: OUTER_X, y: UPPER_ROW_BOTTOM_Y },
     ],
   ],
   4: [
     [
-      { x: CENTER_X, y: UPPER_SEGMENT_END_Y },
+      { x: STEM_X, y: UPPER_ROW_BOTTOM_Y },
       { x: OUTER_X, y: TOP_Y },
     ],
   ],
   5: [
     [
-      { x: CENTER_X, y: UPPER_SEGMENT_END_Y },
+      { x: STEM_X, y: UPPER_ROW_BOTTOM_Y },
       { x: OUTER_X, y: TOP_Y },
-      { x: CENTER_X, y: TOP_Y },
+      { x: STEM_X, y: TOP_Y },
     ],
   ],
   6: [
     [
       { x: OUTER_X, y: TOP_Y },
-      { x: OUTER_X, y: UPPER_SEGMENT_END_Y },
+      { x: OUTER_X, y: UPPER_ROW_BOTTOM_Y },
     ],
   ],
   7: [
     [
-      { x: CENTER_X, y: TOP_Y },
+      { x: STEM_X, y: TOP_Y },
       { x: OUTER_X, y: TOP_Y },
-      { x: OUTER_X, y: UPPER_SEGMENT_END_Y },
+      { x: OUTER_X, y: UPPER_ROW_BOTTOM_Y },
     ],
   ],
   8: [
     [
-      { x: CENTER_X, y: UPPER_SEGMENT_END_Y },
-      { x: OUTER_X, y: UPPER_SEGMENT_END_Y },
+      { x: STEM_X, y: UPPER_ROW_BOTTOM_Y },
+      { x: OUTER_X, y: UPPER_ROW_BOTTOM_Y },
       { x: OUTER_X, y: TOP_Y },
     ],
   ],
   9: [
     [
-      { x: CENTER_X, y: TOP_Y },
+      { x: STEM_X, y: TOP_Y },
       { x: OUTER_X, y: TOP_Y },
-      { x: OUTER_X, y: UPPER_SEGMENT_END_Y },
-      { x: CENTER_X, y: UPPER_SEGMENT_END_Y },
+      { x: OUTER_X, y: UPPER_ROW_BOTTOM_Y },
+      { x: STEM_X, y: UPPER_ROW_BOTTOM_Y },
     ],
   ],
 };
 
-const QUADRANT_TRANSFORMS: Record<Quadrant, { x: 1 | -1; y: 1 | -1 }> = {
+const QUADRANT_TRANSFORMS: Record<QuadrantId, { x: 1 | -1; y: 1 | -1 }> = {
   ones: { x: 1, y: 1 },
   tens: { x: -1, y: 1 },
   hundreds: { x: 1, y: -1 },
@@ -98,12 +105,12 @@ const QUADRANT_TRANSFORMS: Record<Quadrant, { x: 1 | -1; y: 1 | -1 }> = {
 const reflect = (value: number, center: number, direction: 1 | -1) =>
   center + (value - center) * direction;
 
-const transformPoint = (point: GlyphPoint, quadrant: Quadrant): GlyphPoint => {
+const transformPoint = (point: GlyphPoint, quadrant: QuadrantId): GlyphPoint => {
   const transform = QUADRANT_TRANSFORMS[quadrant];
 
   return {
-    x: reflect(point.x, CENTER_X, transform.x),
-    y: reflect(point.y, CENTER_Y, transform.y),
+    x: reflect(point.x, STEM_X, transform.x),
+    y: reflect(point.y, QUADRANT_REFLECT_Y, transform.y),
   };
 };
 
@@ -119,19 +126,19 @@ export const getGlyphPaths = (value: number): GlyphPath[] => {
     tens: Math.floor(normalized / 10) % 10,
     hundreds: Math.floor(normalized / 100) % 10,
     thousands: Math.floor(normalized / 1000) % 10,
-  } satisfies Record<Quadrant, number>;
+  } satisfies Record<QuadrantId, number>;
 
   const paths: GlyphPath[] = [
     {
       id: 'staff',
       points: [
-        { x: CENTER_X, y: TOP_Y },
-        { x: CENTER_X, y: BOTTOM_Y },
+        { x: STEM_X, y: TOP_Y },
+        { x: STEM_X, y: BOTTOM_Y },
       ],
     },
   ];
 
-  (Object.entries(digits) as Array<[Quadrant, number]>).forEach(([quadrant, digit]) => {
+  (Object.entries(digits) as Array<[QuadrantId, number]>).forEach(([quadrant, digit]) => {
     BASE_DIGIT_PATHS[digit].forEach((points, pathIndex) => {
       paths.push({
         id: `${quadrant}-${digit}-${pathIndex}`,
