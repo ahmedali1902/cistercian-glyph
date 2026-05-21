@@ -107,6 +107,9 @@ const transformPoint = (point: GlyphPoint, quadrant: Quadrant): GlyphPoint => {
   };
 };
 
+export const pointsToPathD = (points: GlyphPoint[]) =>
+  points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
+
 export const clampGlyphNumber = (value: number) => Math.min(9999, Math.max(0, Math.trunc(value)));
 
 export const getGlyphPaths = (value: number): GlyphPath[] => {

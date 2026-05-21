@@ -4,7 +4,6 @@
 
 :root {
   color-scheme: light;
-  background: #fafafa;
   font-family:
     Inter,
     ui-sans-serif,
@@ -17,7 +16,6 @@
 
 :root.dark {
   color-scheme: dark;
-  background: #09090b;
 }
 
 html,
@@ -26,16 +24,37 @@ body,
   min-height: 100%;
 }
 
-body {
-  background: #fafafa;
-  margin: 0;
-  transition:
-    background-color 250ms ease,
-    color 250ms ease;
+html {
+  background-color: #fafafa;
+  transition: background-color 300ms ease;
 }
 
-:root.dark body {
-  background: #09090b;
+html.dark {
+  background-color: #09090b;
+}
+
+body {
+  margin: 0;
+  background-color: inherit;
+}
+
+@supports (view-transition-name: root) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.4s;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    transition: none;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.01ms;
+  }
 }
 
 input[type='number'] {
