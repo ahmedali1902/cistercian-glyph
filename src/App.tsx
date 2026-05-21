@@ -14,11 +14,20 @@ function App() {
   const { isDark, toggle: toggleTheme } = useDarkMode();
   const glyph = useGlyphInput();
   const copy = useCopyGlyph(svgRef, glyph.isValid);
+  const lastValidationToastRef = useRef('');
 
   useEffect(() => {
-    if (glyph.validationMessage) {
-      pushError(glyph.validationMessage);
+    if (!glyph.validationMessage) {
+      lastValidationToastRef.current = '';
+      return;
     }
+
+    if (glyph.validationMessage === lastValidationToastRef.current) {
+      return;
+    }
+
+    lastValidationToastRef.current = glyph.validationMessage;
+    pushError(glyph.validationMessage);
   }, [glyph.validationMessage, pushError]);
 
   const handleInputChange = (value: string) => {
@@ -39,14 +48,15 @@ function App() {
           value={glyph.inputValue}
           isValid={glyph.isValid}
           onChange={handleInputChange}
-          onKeyDown={glyph.handleKeyDown}
         />
 
         <GlyphPreview
           svgRef={svgRef}
           isValid={glyph.isValid}
-          numberValue={glyph.numberValue}
+          displayValue={glyph.displayValue}
           glyphPathD={glyph.glyphPathD}
+          viewBox={glyph.viewBox}
+          aspectRatio={glyph.aspectRatio}
           copyStatus={copy.status}
           copyMessage={copy.message}
           onCopy={handleCopy}

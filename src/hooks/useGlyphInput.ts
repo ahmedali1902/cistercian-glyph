@@ -1,58 +1,37 @@
-import { type KeyboardEvent, useMemo, useState } from 'react';
-import { clampGlyphNumber, getUnifiedGlyphPathD } from '../glyph/cistercian';
-import { MAX_GLYPH_VALUE } from '../glyph/glyphGeometry';
-
-const normalizeInputValue = (value: string) => {
-  const digitsOnly = value.replace(/\D/g, '');
-
-  if (digitsOnly === '') {
-    return '';
-  }
-
-  return digitsOnly.replace(/^0+(?=\d)/, '');
-};
+import { useMemo, useState } from 'react';
+import {
+  getStemCount,
+  getUnifiedGlyphPathD,
+  isGlyphInputInRange,
+  normalizeGlyphInput,
+} from '../glyph/cistercian';
+import { getGlyphContentAspectRatio, getGlyphViewBox } from '../glyph/glyphGeometry';
 
 export const useGlyphInput = () => {
   const [inputValue, setInputValue] = useState('');
 
-  const parsedInput = useMemo(() => {
-    if (inputValue === '') {
-      return 0;
-    }
+  const normalizedInput = useMemo(() => normalizeGlyphInput(inputValue), [inputValue]);
 
-    const parsed = Number.parseInt(inputValue, 10);
-    return Number.isNaN(parsed) ? 0 : parsed;
-  }, [inputValue]);
+  const isValid = inputValue === '' || isGlyphInputInRange(inputValue);
+  const validationMessage = isValid || inputValue === '' ? '' : 'Out of range';
 
-  const validationMessage =
-    parsedInput > MAX_GLYPH_VALUE ? `Please enter a number from 0 to ${MAX_GLYPH_VALUE}.` : '';
-  const isValid = validationMessage === '';
-
-  const numberValue = useMemo(() => clampGlyphNumber(parsedInput), [parsedInput]);
-  const glyphPathD = useMemo(() => getUnifiedGlyphPathD(numberValue), [numberValue]);
-
-  const handleChange = (value: string) => {
-    if (value === '') {
-      setInputValue('');
-      return;
-    }
-
-    setInputValue(normalizeInputValue(value));
-  };
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (['e', 'E', '+', '-', '.'].includes(event.key)) {
-      event.preventDefault();
-    }
-  };
+  const displayValue = inputValue === '' ? '0' : normalizedInput;
+  const stemCount = useMemo(
+    () => (isValid ? getStemCount(normalizedInput) : 1),
+    [isValid, normalizedInput],
+  );
+  const glyphPathD = useMemo(() => getUnifiedGlyphPathD(normalizedInput), [normalizedInput]);
+  const viewBox = useMemo(() => getGlyphViewBox(stemCount), [stemCount]);
+  const aspectRatio = useMemo(() => getGlyphContentAspectRatio(stemCount), [stemCount]);
 
   return {
     inputValue,
-    numberValue,
+    displayValue,
     glyphPathD,
+    viewBox,
+    aspectRatio,
     isValid,
     validationMessage,
-    handleChange,
-    handleKeyDown,
+    handleChange: setInputValue,
   };
 };

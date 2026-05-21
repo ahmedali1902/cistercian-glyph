@@ -1,15 +1,17 @@
-/** @see docs/glyph-system.md */
 import {
-  BOTTOM_Y,
+  createStemGeometry,
+  MAX_GLYPH_VALUE_STRING,
+  MAX_STEM_COUNT,
   OUTER_X,
-  QUADRANT_REFLECT_Y,
+  STEM_DIGIT_COUNT,
   STEM_X,
   TOP_Y,
   UPPER_ROW_BOTTOM_Y,
   type QuadrantId,
+  type StemGeometry,
 } from './glyphGeometry';
 
-export type GlyphPoint = {
+type GlyphPoint = {
   x: number;
   y: number;
 };
@@ -89,21 +91,27 @@ const STEM_TOLERANCE = 0.001;
 const reflect = (value: number, center: number, direction: 1 | -1) =>
   center + (value - center) * direction;
 
-const transformPoint = (point: GlyphPoint, quadrant: QuadrantId): GlyphPoint => {
+const transformPoint = (
+  point: GlyphPoint,
+  quadrant: QuadrantId,
+  geometry: StemGeometry,
+): GlyphPoint => {
   const transform = QUADRANT_TRANSFORMS[quadrant];
+  const xOffset = geometry.stemX - STEM_X;
+  const translatedX = point.x + xOffset;
 
   return {
-    x: reflect(point.x, STEM_X, transform.x),
-    y: reflect(point.y, QUADRANT_REFLECT_Y, transform.y),
+    x: reflect(translatedX, geometry.stemX, transform.x),
+    y: reflect(point.y, geometry.quadrantReflectY, transform.y),
   };
 };
 
-const isOnStem = (point: GlyphPoint) => Math.abs(point.x - STEM_X) < STEM_TOLERANCE;
+const isOnStem = (point: GlyphPoint, stemX: number) => Math.abs(point.x - stemX) < STEM_TOLERANCE;
 
-const touchesStem = (points: GlyphPoint[]) => points.some(isOnStem);
+const touchesStem = (points: GlyphPoint[], stemX: number) =>
+  points.some((point) => isOnStem(point, stemX));
 
-/** Doubles back along the same segment so a continuous stroke does not add extra geometry. */
-const toContinuousBranch = (points: GlyphPoint[]): GlyphPoint[] => {
+const toContinuousBranch = (points: GlyphPoint[], stemX: number): GlyphPoint[] => {
   if (points.length < 2) {
     return points;
   }
@@ -111,8 +119,8 @@ const toContinuousBranch = (points: GlyphPoint[]): GlyphPoint[] => {
   let branch = points;
   const first = branch[0]!;
 
-  if (!isOnStem(first)) {
-    branch = [{ x: STEM_X, y: first.y }, ...branch];
+  if (!isOnStem(first, stemX)) {
+    branch = [{ x: stemX, y: first.y }, ...branch];
   }
 
   return [...branch, ...branch.slice(0, -1).reverse()];
@@ -126,8 +134,8 @@ type PreparedBranches = {
   isolatedBranches: GlyphPoint[][];
 };
 
-const prepareDigitBranches = (value: number): PreparedBranches => {
-  const normalized = clampGlyphNumber(value);
+const prepareDigitBranches = (value: number, geometry: StemGeometry): PreparedBranches => {
+  const normalized = clampStemValue(value);
   const digits = {
     ones: normalized % 10,
     tens: Math.floor(normalized / 10) % 10,
@@ -140,10 +148,10 @@ const prepareDigitBranches = (value: number): PreparedBranches => {
 
   (Object.entries(digits) as Array<[QuadrantId, number]>).forEach(([quadrant, digit]) => {
     BASE_DIGIT_PATHS[digit].forEach((points) => {
-      const transformed = points.map((point) => transformPoint(point, quadrant));
+      const transformed = points.map((point) => transformPoint(point, quadrant, geometry));
 
-      if (touchesStem(transformed)) {
-        stemBranches.push(toContinuousBranch(transformed));
+      if (touchesStem(transformed, geometry.stemX)) {
+        stemBranches.push(toContinuousBranch(transformed, geometry.stemX));
       } else {
         isolatedBranches.push(transformed);
       }
@@ -153,16 +161,15 @@ const prepareDigitBranches = (value: number): PreparedBranches => {
   return { stemBranches, isolatedBranches };
 };
 
-/** Walks the stave top-to-bottom, detouring along each digit branch and returning. */
-export const buildUnifiedGlyphPathD = (branches: GlyphPoint[][]): string => {
+const buildUnifiedGlyphPathD = (branches: GlyphPoint[][], geometry: StemGeometry): string => {
   if (branches.length === 0) {
-    return `M ${STEM_X} ${TOP_Y} L ${STEM_X} ${BOTTOM_Y}`;
+    return `M ${geometry.stemX} ${geometry.topY} L ${geometry.stemX} ${geometry.bottomY}`;
   }
 
-  const anchorYs = new Set<number>([TOP_Y, BOTTOM_Y]);
+  const anchorYs = new Set<number>([geometry.topY, geometry.bottomY]);
   for (const branch of branches) {
     for (const point of branch) {
-      if (isOnStem(point)) {
+      if (isOnStem(point, geometry.stemX)) {
         anchorYs.add(point.y);
       }
     }
@@ -182,7 +189,7 @@ export const buildUnifiedGlyphPathD = (branches: GlyphPoint[][]): string => {
     branchesByStartY.set(startY, existing);
   }
 
-  let current: GlyphPoint = { x: STEM_X, y: levels[0]! };
+  let current: GlyphPoint = { x: geometry.stemX, y: levels[0]! };
   const parts: string[] = [`M ${current.x} ${current.y}`];
 
   const appendPoint = (point: GlyphPoint) => {
@@ -209,19 +216,92 @@ export const buildUnifiedGlyphPathD = (branches: GlyphPoint[][]): string => {
 
     const nextY = levels[index + 1];
     if (nextY !== undefined) {
-      appendPoint({ x: STEM_X, y: nextY });
+      appendPoint({ x: geometry.stemX, y: nextY });
     }
   }
 
   return parts.join(' ');
 };
 
-export const clampGlyphNumber = (value: number) => Math.min(9999, Math.max(0, Math.trunc(value)));
+export const stripInputDigits = (value: string): string => {
+  const digitsOnly = value.replace(/\D/g, '');
 
-export const getUnifiedGlyphPathD = (value: number): string => {
-  const { stemBranches, isolatedBranches } = prepareDigitBranches(value);
-  const mainPath = buildUnifiedGlyphPathD(stemBranches);
-  const isolatedPaths = isolatedBranches.map((branch) => pointsToSubpathD(branch)).join(' ');
+  if (digitsOnly === '') {
+    return '';
+  }
 
-  return isolatedPaths ? `${mainPath} ${isolatedPaths}` : mainPath;
+  return digitsOnly.replace(/^0+(?=\d)/, '');
+};
+
+export const normalizeGlyphInput = (value: string | number): string => {
+  const stripped = stripInputDigits(String(value));
+  return stripped === '' ? '0' : stripped;
+};
+
+export const formatDigitsWithCommas = (digits: string): string => {
+  if (digits === '') {
+    return '';
+  }
+
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+};
+
+export const isGlyphInputInRange = (value: string): boolean => {
+  const stripped = stripInputDigits(value);
+
+  if (stripped.length > MAX_GLYPH_VALUE_STRING.length) {
+    return false;
+  }
+
+  if (stripped.length === MAX_GLYPH_VALUE_STRING.length && stripped > MAX_GLYPH_VALUE_STRING) {
+    return false;
+  }
+
+  return true;
+};
+
+const clampStemValue = (value: number) =>
+  Math.min(10 ** STEM_DIGIT_COUNT - 1, Math.max(0, Math.trunc(value)));
+
+const groupToStemValue = (group: string, groupCount: number): number => {
+  const digitCount = group.length;
+  const parsed = Number.parseInt(group, 10);
+
+  if (groupCount > 1 && digitCount < STEM_DIGIT_COUNT) {
+    return parsed * 10 ** (STEM_DIGIT_COUNT - digitCount);
+  }
+
+  return parsed;
+};
+
+const getStemGroups = (value: string | number): string[] => {
+  const normalized = normalizeGlyphInput(value);
+  const groups: string[] = [];
+
+  for (let index = normalized.length; index > 0; index -= STEM_DIGIT_COUNT) {
+    const start = Math.max(0, index - STEM_DIGIT_COUNT);
+    groups.unshift(normalized.slice(start, index));
+  }
+
+  return groups.slice(-MAX_STEM_COUNT);
+};
+
+export const getStemCount = (value: string | number): number => getStemGroups(value).length;
+
+export const getUnifiedGlyphPathD = (value: string | number): string => {
+  const groups = getStemGroups(value);
+  const paths: string[] = [];
+
+  groups.forEach((group, indexFromLeft) => {
+    const stemIndexFromRight = groups.length - 1 - indexFromLeft;
+    const geometry = createStemGeometry(stemIndexFromRight);
+    const stemValue = groupToStemValue(group, groups.length);
+    const { stemBranches, isolatedBranches } = prepareDigitBranches(stemValue, geometry);
+    const mainPath = buildUnifiedGlyphPathD(stemBranches, geometry);
+    const isolatedPaths = isolatedBranches.map((branch) => pointsToSubpathD(branch)).join(' ');
+
+    paths.push(isolatedPaths ? `${mainPath} ${isolatedPaths}` : mainPath);
+  });
+
+  return paths.join(' ');
 };

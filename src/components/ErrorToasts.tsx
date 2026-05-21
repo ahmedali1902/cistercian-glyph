@@ -8,11 +8,13 @@ const AUTO_DISMISS_MS = 2000;
 let nextToastId = 0;
 
 const ErrorToastItem = ({
+  id,
   message,
   onDismiss,
 }: {
+  id: number;
   message: string;
-  onDismiss: () => void;
+  onDismiss: (id: number) => void;
 }) => {
   const [progress, setProgress] = useState(1);
   const startedAtRef = useRef(0);
@@ -32,6 +34,8 @@ const ErrorToastItem = ({
 
   useEffect(() => {
     startedAtRef.current = Date.now();
+    pausedMsRef.current = 0;
+    pauseStartedAtRef.current = null;
     let frame = 0;
 
     const tick = () => {
@@ -43,7 +47,7 @@ const ErrorToastItem = ({
       setProgress(remaining);
 
       if (remaining <= 0) {
-        onDismiss();
+        onDismiss(id);
         return;
       }
 
@@ -52,7 +56,7 @@ const ErrorToastItem = ({
 
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [onDismiss]);
+  }, [id, onDismiss]);
 
   return (
     <div
@@ -74,7 +78,7 @@ const ErrorToastItem = ({
         </p>
         <button
           type="button"
-          onClick={onDismiss}
+          onClick={() => onDismiss(id)}
           aria-label="Dismiss"
           className="-mr-1 -mt-0.5 shrink-0 rounded-md p-1 text-red-400 transition-colors hover:bg-red-50 hover:text-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50 dark:text-red-500 dark:hover:bg-red-950/60 dark:hover:text-red-200"
         >
@@ -104,8 +108,9 @@ const ErrorToastStack = ({
       {toasts.map((toast) => (
         <ErrorToastItem
           key={toast.id}
+          id={toast.id}
           message={toast.message}
-          onDismiss={() => onDismiss(toast.id)}
+          onDismiss={onDismiss}
         />
       ))}
     </div>
