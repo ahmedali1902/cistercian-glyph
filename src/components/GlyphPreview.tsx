@@ -1,5 +1,4 @@
 import { type RefObject } from 'react';
-import { type GlyphPath } from '../glyph/cistercian';
 import { CistercianGlyph } from './CistercianGlyph';
 import { CopyGlyphButton } from './CopyGlyphButton';
 
@@ -7,7 +6,7 @@ type GlyphPreviewProps = {
   svgRef: RefObject<SVGSVGElement | null>;
   isValid: boolean;
   numberValue: number;
-  glyphPaths: GlyphPath[];
+  glyphPathD: string;
   copyStatus: 'idle' | 'success' | 'error';
   copyMessage: string;
   onCopy: () => void;
@@ -17,7 +16,7 @@ export const GlyphPreview = ({
   svgRef,
   isValid,
   numberValue,
-  glyphPaths,
+  glyphPathD,
   copyStatus,
   copyMessage,
   onCopy,
@@ -27,7 +26,7 @@ export const GlyphPreview = ({
       ref={svgRef}
       isValid={isValid}
       numberValue={numberValue}
-      glyphPaths={glyphPaths}
+      glyphPathD={glyphPathD}
     />
 
     <CopyGlyphButton

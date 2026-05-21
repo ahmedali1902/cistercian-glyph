@@ -39,7 +39,7 @@ function App() {
           svgRef={svgRef}
           isValid={glyph.isValid}
           numberValue={glyph.numberValue}
-          glyphPaths={glyph.glyphPaths}
+          glyphPathD={glyph.glyphPathD}
           copyStatus={copy.status}
           copyMessage={copy.message}
           onCopy={handleCopy}

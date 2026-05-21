@@ -1,5 +1,5 @@
 import { type KeyboardEvent, useMemo, useState } from 'react';
-import { clampGlyphNumber, getGlyphPaths } from '../glyph/cistercian';
+import { clampGlyphNumber, getUnifiedGlyphPathD } from '../glyph/cistercian';
 import { MAX_GLYPH_VALUE } from '../glyph/constants';
 import { normalizeInputValue } from '../utils/normalizeInput';
 
@@ -20,7 +20,7 @@ export const useGlyphInput = () => {
   const isValid = validationMessage === '';
 
   const numberValue = useMemo(() => clampGlyphNumber(parsedInput), [parsedInput]);
-  const glyphPaths = useMemo(() => getGlyphPaths(numberValue), [numberValue]);
+  const glyphPathD = useMemo(() => getUnifiedGlyphPathD(numberValue), [numberValue]);
 
   const handleChange = (value: string) => {
     if (value === '') {
@@ -40,7 +40,7 @@ export const useGlyphInput = () => {
   return {
     inputValue,
     numberValue,
-    glyphPaths,
+    glyphPathD,
     isValid,
     validationMessage,
     handleChange,
