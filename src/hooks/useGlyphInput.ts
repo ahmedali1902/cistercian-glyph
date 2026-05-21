@@ -1,7 +1,16 @@
 import { type KeyboardEvent, useMemo, useState } from 'react';
 import { clampGlyphNumber, getUnifiedGlyphPathD } from '../glyph/cistercian';
-import { MAX_GLYPH_VALUE } from '../glyph/constants';
-import { normalizeInputValue } from '../utils/normalizeInput';
+import { MAX_GLYPH_VALUE } from '../glyph/glyphGeometry';
+
+const normalizeInputValue = (value: string) => {
+  const digitsOnly = value.replace(/\D/g, '');
+
+  if (digitsOnly === '') {
+    return '';
+  }
+
+  return digitsOnly.replace(/^0+(?=\d)/, '');
+};
 
 export const useGlyphInput = () => {
   const [inputValue, setInputValue] = useState('');

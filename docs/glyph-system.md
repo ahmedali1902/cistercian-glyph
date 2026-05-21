@@ -106,7 +106,7 @@ Digit paths are authored in the **ones** template using anchor points on the ste
 
 ## Export
 
-Copied PNGs are **1:1 squares** at 320×320 px (`SVG_SIZE` in `src/glyph/constants.ts`), preserving the same centered 2:3 glyph as the preview.
+Copied PNGs are **1:1 squares** at 320×320 px (`SVG_SIZE` in `src/glyph/glyphGeometry.ts`), preserving the same centered 2:3 glyph as the preview.
 
 ## Summary
 

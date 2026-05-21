@@ -1,9 +1,4 @@
-/**
- * Cistercian numeral geometry and path generation.
- *
- * @see docs/glyph-system.md
- * @see glyphGeometry.ts
- */
+/** @see docs/glyph-system.md */
 import {
   BOTTOM_Y,
   OUTER_X,

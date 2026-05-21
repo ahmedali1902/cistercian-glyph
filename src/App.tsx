@@ -1,7 +1,8 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { GlyphPreview } from './components/GlyphPreview';
 import { Header } from './components/Header';
 import { NumberInput } from './components/NumberInput';
+import { useErrorToast } from './errorToast';
 import { useCopyGlyph } from './hooks/useCopyGlyph';
 import { useDarkMode } from './hooks/useDarkMode';
 import { useGlyphInput } from './hooks/useGlyphInput';
@@ -9,9 +10,16 @@ import './App.css';
 
 function App() {
   const svgRef = useRef<SVGSVGElement>(null);
+  const { pushError } = useErrorToast();
   const { isDark, toggle: toggleTheme } = useDarkMode();
   const glyph = useGlyphInput();
   const copy = useCopyGlyph(svgRef, glyph.isValid);
+
+  useEffect(() => {
+    if (glyph.validationMessage) {
+      pushError(glyph.validationMessage);
+    }
+  }, [glyph.validationMessage, pushError]);
 
   const handleInputChange = (value: string) => {
     copy.reset();
@@ -30,7 +38,6 @@ function App() {
         <NumberInput
           value={glyph.inputValue}
           isValid={glyph.isValid}
-          validationMessage={glyph.validationMessage}
           onChange={handleInputChange}
           onKeyDown={glyph.handleKeyDown}
         />

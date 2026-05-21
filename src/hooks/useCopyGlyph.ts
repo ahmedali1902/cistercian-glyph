@@ -1,16 +1,31 @@
-import { type RefObject, useState } from 'react';
+import { type RefObject, useEffect, useRef, useState } from 'react';
+import { useErrorToast } from '../errorToast';
 import { svgToTransparentPngBlob } from '../utils/svgToPng';
 
-type CopyStatus = 'idle' | 'success' | 'error';
+const SUCCESS_RESET_MS = 1000;
+
+type CopyStatus = 'idle' | 'success';
 
 export const useCopyGlyph = (svgRef: RefObject<SVGSVGElement | null>, isValid: boolean) => {
+  const { pushError } = useErrorToast();
   const [status, setStatus] = useState<CopyStatus>('idle');
   const [message, setMessage] = useState('');
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearSuccessTimer = () => {
+    if (successTimerRef.current !== null) {
+      clearTimeout(successTimerRef.current);
+      successTimerRef.current = null;
+    }
+  };
 
   const reset = () => {
+    clearSuccessTimer();
     setStatus('idle');
     setMessage('');
   };
+
+  useEffect(() => clearSuccessTimer, []);
 
   const copy = async () => {
     reset();
@@ -37,9 +52,13 @@ export const useCopyGlyph = (svgRef: RefObject<SVGSVGElement | null>, isValid: b
 
       setStatus('success');
       setMessage('Copied transparent PNG');
+      successTimerRef.current = setTimeout(() => {
+        setStatus('idle');
+        setMessage('');
+        successTimerRef.current = null;
+      }, SUCCESS_RESET_MS);
     } catch (error) {
-      setStatus('error');
-      setMessage(error instanceof Error ? error.message : 'Copy failed.');
+      pushError(error instanceof Error ? error.message : 'Copy failed.');
     }
   };
 
