@@ -1,82 +1,114 @@
-import { type RefObject } from 'react';
-import checkIcon from '../assets/icons/check.svg?raw';
-import copyIcon from '../assets/icons/copy.svg?raw';
+import { type Ref, useLayoutEffect, useRef, useState } from 'react';
+import { type GlyphStem } from '../glyph/cistercian';
 import { GLYPH_FRAME_PADDING, GLYPH_HEIGHT } from '../glyph/glyphGeometry';
+import { type GlyphHighlight } from '../glyph/highlight';
 import { CistercianGlyph } from './CistercianGlyph';
-import { Icon } from './Icon';
 
+/**
+ * Glyph height in the preview. The card's height depends only on the screen width (never on
+ * the number), so nothing below it moves while typing. Narrow screens get a shorter card so a
+ * shrunk multi-stem glyph doesn't float in empty space.
+ */
 const PREVIEW_HEIGHT_REM = 12;
-const FRAME_PADDING_REM = (GLYPH_FRAME_PADDING / GLYPH_HEIGHT) * PREVIEW_HEIGHT_REM;
+const COMPACT_PREVIEW_HEIGHT_REM = 9;
+const COMPACT_BELOW_REM = 36; // ~576px of available width
+
+const framePaddingRem = (previewHeightRem: number) =>
+  (GLYPH_FRAME_PADDING / GLYPH_HEIGHT) * previewHeightRem;
 
 type GlyphPreviewProps = {
-  svgRef: RefObject<SVGSVGElement | null>;
-  isValid: boolean;
+  svgRef: Ref<SVGSVGElement>;
   displayValue: string;
-  glyphPathD: string;
+  stems: GlyphStem[];
   viewBox: string;
   aspectRatio: number;
-  copyStatus: 'idle' | 'success';
-  copyMessage: string;
-  onCopy: () => void;
+  highlight: GlyphHighlight | null;
+};
+
+const getRootFontSizePx = () =>
+  Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+
+/** Tracks the width available to the preview so wide (multi-stem) glyphs can shrink to fit. */
+const useAvailableWidthRem = () => {
+  const ref = useRef<HTMLElement>(null);
+  const [widthRem, setWidthRem] = useState<number | null>(null);
+  // Size animations stay off until the first measurement has been painted, so the card
+  // doesn't visibly resize on page load.
+  const [isMeasured, setIsMeasured] = useState(false);
+
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) {
+      return;
+    }
+
+    const update = (widthPx: number) => setWidthRem(widthPx / getRootFontSizePx());
+    update(element.clientWidth);
+    const frame = requestAnimationFrame(() => setIsMeasured(true));
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) {
+        update(entry.contentRect.width);
+      }
+    });
+    observer.observe(element);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, []);
+
+  return { ref, widthRem, isMeasured };
 };
 
 export const GlyphPreview = ({
   svgRef,
-  isValid,
   displayValue,
-  glyphPathD,
+  stems,
   viewBox,
   aspectRatio,
-  copyStatus,
-  copyMessage,
-  onCopy,
+  highlight,
 }: GlyphPreviewProps) => {
-  const isCopySuccess = copyStatus === 'success';
-  const contentWidthRem = PREVIEW_HEIGHT_REM * aspectRatio;
-  const shellWidthRem = contentWidthRem + 2 * FRAME_PADDING_REM;
-  const shellHeightRem = PREVIEW_HEIGHT_REM + 2 * FRAME_PADDING_REM;
+  const { ref: sectionRef, widthRem, isMeasured } = useAvailableWidthRem();
+
+  // Full size when it fits; otherwise the glyph scales down to the available width while
+  // the card keeps its height and the glyph stays vertically centred inside it.
+  const previewHeightRem =
+    widthRem !== null && widthRem < COMPACT_BELOW_REM
+      ? COMPACT_PREVIEW_HEIGHT_REM
+      : PREVIEW_HEIGHT_REM;
+  const paddingRem = framePaddingRem(previewHeightRem);
+  const shellHeightRem = previewHeightRem + 2 * paddingRem;
+
+  const naturalContentWidthRem = previewHeightRem * aspectRatio;
+  const maxContentWidthRem = widthRem === null ? naturalContentWidthRem : widthRem - 2 * paddingRem;
+  const scale = Math.min(1, maxContentWidthRem / naturalContentWidthRem);
+  const glyphHeightRem = previewHeightRem * scale;
+  const contentWidthRem = glyphHeightRem * aspectRatio;
+  const shellWidthRem = contentWidthRem + 2 * paddingRem;
 
   return (
-    <section className="flex w-full flex-col items-center">
+    <section ref={sectionRef} className="flex w-full justify-center">
       <div
-        className="glyph-preview-shell relative rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
-        style={{
-          width: `${shellWidthRem}rem`,
-          height: `${shellHeightRem}rem`,
-        }}
+        className={`glyph-preview-shell surface relative rounded-2xl ${isMeasured ? 'is-animated' : ''}`}
+        style={{ width: `${shellWidthRem}rem`, height: `${shellHeightRem}rem` }}
       >
         <div
-          className="absolute top-0 left-0"
-          style={{
-            padding: `${FRAME_PADDING_REM}rem`,
-            width: `${shellWidthRem}rem`,
-            height: `${shellHeightRem}rem`,
-          }}
+          className="absolute inset-y-0 right-0 flex items-center"
+          style={{ paddingInline: `${paddingRem}rem` }}
         >
-          <div style={{ width: `${contentWidthRem}rem`, height: `${PREVIEW_HEIGHT_REM}rem` }}>
+          <div
+            className="glyph-preview-content"
+            style={{ width: `${contentWidthRem}rem`, height: `${glyphHeightRem}rem` }}
+          >
             <CistercianGlyph
               ref={svgRef}
-              isValid={isValid}
               displayValue={displayValue}
-              glyphPathD={glyphPathD}
+              stems={stems}
               viewBox={viewBox}
+              highlight={highlight}
             />
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={onCopy}
-          disabled={!isValid}
-          aria-label={isCopySuccess ? copyMessage : 'Copy glyph image'}
-          title={isCopySuccess ? copyMessage : 'Copy image'}
-          className="absolute top-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-md border border-zinc-200/80 bg-white/90 text-zinc-600 shadow-sm backdrop-blur-sm transition-colors duration-200 hover:border-zinc-300 hover:bg-white hover:text-zinc-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/60 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-900 dark:hover:text-zinc-100 dark:focus-visible:ring-zinc-500/60"
-        >
-          <span className="sr-only" aria-live="polite">
-            {isCopySuccess ? copyMessage : ''}
-          </span>
-          <Icon src={isCopySuccess ? checkIcon : copyIcon} />
-        </button>
       </div>
     </section>
   );

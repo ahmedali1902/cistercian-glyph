@@ -1,69 +1,70 @@
-import { forwardRef } from 'react';
-import {
-  GLYPH_CENTER_X,
-  GLYPH_CENTER_Y,
-  GLYPH_STROKE_WIDTH,
-  GLYPH_WIDTH,
-  SVG_VIEWBOX,
-} from '../glyph/glyphGeometry';
+import { type Ref } from 'react';
+import { formatDigitsWithCommas, type GlyphStem } from '../glyph/cistercian';
+import { GLYPH_STROKE_WIDTH } from '../glyph/glyphGeometry';
+import { type GlyphHighlight, matchesStem } from '../glyph/highlight';
+
+/** Stems not being pointed at. */
+const OTHER_STEM_OPACITY = 0.12;
+/** The rest of the pointed-at stem while one quadrant is focused. */
+const SAME_STEM_OPACITY = 0.3;
+const FADE = 'transition-opacity duration-200';
 
 type CistercianGlyphProps = {
-  isValid: boolean;
+  ref?: Ref<SVGSVGElement>;
   displayValue: string;
-  glyphPathD: string;
+  stems: GlyphStem[];
   viewBox: string;
+  /** What the digit breakdown is pointing at, or null for nothing. */
+  highlight: GlyphHighlight | null;
 };
 
-const InvalidGlyph = () => {
-  const radius = GLYPH_WIDTH * 0.53;
-  const eyeOffsetX = radius * 0.38;
-  const eyeY = GLYPH_CENTER_Y - radius * 0.25;
-  const mouthY = GLYPH_CENTER_Y + radius * 0.53;
-  const mouthControlY = GLYPH_CENTER_Y + radius * 0.12;
-
+export const CistercianGlyph = ({
+  ref,
+  displayValue,
+  stems,
+  viewBox,
+  highlight,
+}: CistercianGlyphProps) => {
   return (
-    <>
-      <circle cx={GLYPH_CENTER_X} cy={GLYPH_CENTER_Y} r={radius} />
-      <line
-        x1={GLYPH_CENTER_X - eyeOffsetX}
-        y1={eyeY}
-        x2={GLYPH_CENTER_X - eyeOffsetX}
-        y2={eyeY + 1}
-      />
-      <line
-        x1={GLYPH_CENTER_X + eyeOffsetX}
-        y1={eyeY}
-        x2={GLYPH_CENTER_X + eyeOffsetX}
-        y2={eyeY + 1}
-      />
-      <path
-        d={`M${GLYPH_CENTER_X - radius * 0.47} ${mouthY} Q${GLYPH_CENTER_X} ${mouthControlY} ${GLYPH_CENTER_X + radius * 0.47} ${mouthY}`}
-      />
-    </>
+    <svg
+      ref={ref}
+      viewBox={viewBox}
+      role="img"
+      aria-label={`Cistercian numeral for ${formatDigitsWithCommas(displayValue)}`}
+      className="block h-full w-full overflow-visible text-zinc-950 dark:text-zinc-50"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={GLYPH_STROKE_WIDTH}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {stems.map((stem, index) => {
+        const inStem = highlight !== null && matchesStem(highlight, index);
+        const quadrant = highlight?.quadrant ?? null;
+        const showFocus = inStem && quadrant !== null;
+        const baseOpacity =
+          highlight === null
+            ? 1
+            : !inStem
+              ? OTHER_STEM_OPACITY
+              : quadrant !== null
+                ? SAME_STEM_OPACITY
+                : 1;
+
+        return (
+          <g key={index}>
+            <path d={stem.pathD} opacity={baseOpacity} className={FADE} />
+            {/* The focused quadrant (plus its staff) drawn on top at full strength.
+                Marked data-highlight so exports leave it out. */}
+            <path
+              data-highlight
+              d={showFocus ? `${stem.staffPathD} ${stem.quadrantPathD[quadrant]}` : stem.staffPathD}
+              opacity={showFocus ? 1 : 0}
+              className={FADE}
+            />
+          </g>
+        );
+      })}
+    </svg>
   );
 };
-
-export const CistercianGlyph = forwardRef<SVGSVGElement, CistercianGlyphProps>(
-  function CistercianGlyph({ isValid, displayValue, glyphPathD, viewBox }, ref) {
-    const activeViewBox = isValid ? viewBox : SVG_VIEWBOX;
-
-    return (
-      <svg
-        ref={ref}
-        viewBox={activeViewBox}
-        role="img"
-        aria-label={isValid ? `Cistercian glyph for ${displayValue}` : 'Invalid number sad face'}
-        className={`block h-full w-full overflow-visible transition-colors duration-300 ${
-          isValid ? 'text-zinc-950 dark:text-zinc-50' : 'text-red-600 dark:text-red-400'
-        }`}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={GLYPH_STROKE_WIDTH}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        {isValid ? <path d={glyphPathD} /> : <InvalidGlyph />}
-      </svg>
-    );
-  },
-);

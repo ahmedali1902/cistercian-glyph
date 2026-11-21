@@ -3,7 +3,42 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cistercian Glyph</title>
+    <title>Cistercian Glyph — numbers as medieval numerals</title>
+    <meta
+      name="description"
+      content="Turn any number into a Cistercian numeral — the medieval monks' system that writes up to 9999 as a single glyph. Copy or download as PNG or SVG."
+    />
+    <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href="https://ahmedali1902.github.io/cistercian-glyph/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Cistercian Glyph" />
+    <meta
+      property="og:description"
+      content="Turn any number into a Cistercian numeral. Copy or download as PNG or SVG."
+    />
+    <meta property="og:url" content="https://ahmedali1902.github.io/cistercian-glyph/" />
+    <meta property="og:image" content="https://ahmedali1902.github.io/cistercian-glyph/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <script>
+      // Apply the theme before first paint to avoid a light flash in dark mode.
+      // Keep in sync with src/hooks/useDarkMode.ts.
+      (function () {
+        var stored = null;
+        try {
+          stored = localStorage.getItem('theme');
+        } catch (error) {}
+        var dark =
+          stored === 'dark' ||
+          (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.classList.toggle('dark', dark);
+      })();
+    </script>
   </head>
 
   <body>

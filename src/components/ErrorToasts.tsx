@@ -63,7 +63,7 @@ const ErrorToastItem = ({
       role="alert"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className="pointer-events-auto max-w-xs overflow-hidden rounded-lg border border-red-200/80 bg-white/95 shadow-lg shadow-zinc-900/5 backdrop-blur-sm dark:border-red-900/60 dark:bg-zinc-900/95 dark:shadow-black/30"
+      className="pointer-events-auto w-full overflow-hidden rounded-lg border border-red-200/80 bg-white/95 shadow-lg shadow-zinc-900/5 backdrop-blur-sm dark:border-red-900/60 dark:bg-zinc-900/95 dark:shadow-black/30"
     >
       <div className="h-1 bg-red-100 dark:bg-red-950/80" aria-hidden>
         <div
@@ -103,7 +103,7 @@ const ErrorToastStack = ({
   return (
     <div
       aria-live="assertive"
-      className="pointer-events-none fixed right-8 bottom-8 z-50 flex w-full max-w-xs flex-col gap-2.5"
+      className="pointer-events-none fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-xs flex-col gap-2.5 sm:inset-x-auto sm:right-8 sm:bottom-8 sm:w-full"
     >
       {toasts.map((toast) => (
         <ErrorToastItem

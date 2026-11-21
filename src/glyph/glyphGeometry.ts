@@ -1,7 +1,7 @@
 export const SVG_SIZE = 320;
 
 /** Change MAX_STEM_COUNT to scale range, layout, and viewBox. */
-export const MAX_STEM_COUNT = 6;
+export const MAX_STEM_COUNT = 3;
 export const STEM_DIGIT_COUNT = 4 as const;
 
 const MAX_DIGIT_COUNT = MAX_STEM_COUNT * STEM_DIGIT_COUNT;

@@ -134,14 +134,21 @@ type PreparedBranches = {
   isolatedBranches: GlyphPoint[][];
 };
 
-const prepareDigitBranches = (value: number, geometry: StemGeometry): PreparedBranches => {
+export type StemDigits = Record<QuadrantId, number>;
+
+export const getStemDigits = (value: number): StemDigits => {
   const normalized = clampStemValue(value);
-  const digits = {
+
+  return {
     ones: normalized % 10,
     tens: Math.floor(normalized / 10) % 10,
     hundreds: Math.floor(normalized / 100) % 10,
     thousands: Math.floor(normalized / 1000) % 10,
-  } satisfies Record<QuadrantId, number>;
+  };
+};
+
+const prepareDigitBranches = (value: number, geometry: StemGeometry): PreparedBranches => {
+  const digits = getStemDigits(value);
 
   const stemBranches: GlyphPoint[][] = [];
   const isolatedBranches: GlyphPoint[][] = [];
@@ -246,33 +253,18 @@ export const formatDigitsWithCommas = (digits: string): string => {
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 };
 
-export const isGlyphInputInRange = (value: string): boolean => {
-  const stripped = stripInputDigits(value);
+export const MAX_INPUT_DIGITS = MAX_GLYPH_VALUE_STRING.length;
 
-  if (stripped.length > MAX_GLYPH_VALUE_STRING.length) {
-    return false;
-  }
-
-  if (stripped.length === MAX_GLYPH_VALUE_STRING.length && stripped > MAX_GLYPH_VALUE_STRING) {
-    return false;
-  }
-
-  return true;
-};
+/**
+ * Digits only, no leading zeros, and never longer than the glyph can show. Anything past
+ * the limit is dropped from the end (e.g. with a 4-digit limit, `31415` becomes `3141`), so
+ * the value is always the leading digits of what was typed or pasted.
+ */
+export const clampGlyphInput = (value: string): string =>
+  stripInputDigits(value).slice(0, MAX_INPUT_DIGITS);
 
 const clampStemValue = (value: number) =>
   Math.min(10 ** STEM_DIGIT_COUNT - 1, Math.max(0, Math.trunc(value)));
-
-const groupToStemValue = (group: string, groupCount: number): number => {
-  const digitCount = group.length;
-  const parsed = Number.parseInt(group, 10);
-
-  if (groupCount > 1 && digitCount < STEM_DIGIT_COUNT) {
-    return parsed * 10 ** (STEM_DIGIT_COUNT - digitCount);
-  }
-
-  return parsed;
-};
 
 const getStemGroups = (value: string | number): string[] => {
   const normalized = normalizeGlyphInput(value);
@@ -288,20 +280,59 @@ const getStemGroups = (value: string | number): string[] => {
 
 export const getStemCount = (value: string | number): number => getStemGroups(value).length;
 
-export const getUnifiedGlyphPathD = (value: string | number): string => {
-  const groups = getStemGroups(value);
-  const paths: string[] = [];
+export type GlyphStem = {
+  /** The digits this stem encodes, as typed (e.g. `"12"` or `"0045"`). */
+  group: string;
+  value: number;
+  digits: StemDigits;
+  /** The whole stem as one continuous path (used for normal rendering and export). */
+  pathD: string;
+  /** Just the vertical staff. */
+  staffPathD: string;
+  /** Each quadrant's marks on their own (empty for a zero digit), for highlighting. */
+  quadrantPathD: Record<QuadrantId, string>;
+};
 
-  groups.forEach((group, indexFromLeft) => {
-    const stemIndexFromRight = groups.length - 1 - indexFromLeft;
-    const geometry = createStemGeometry(stemIndexFromRight);
-    const stemValue = groupToStemValue(group, groups.length);
+const QUADRANTS = Object.keys(QUADRANT_TRANSFORMS) as QuadrantId[];
+
+const getQuadrantPathD = (digit: number, quadrant: QuadrantId, geometry: StemGeometry) =>
+  BASE_DIGIT_PATHS[digit]!.map((points) =>
+    pointsToSubpathD(points.map((point) => transformPoint(point, quadrant, geometry))),
+  ).join(' ');
+
+/**
+ * Splits a number into 4-digit groups from the right and builds one stem per group,
+ * ordered left to right. Every group is drawn at its true value, so a short leftmost
+ * group like `12` in `12,3456` renders as 12 (not 1200) and each number has a unique glyph.
+ */
+export const getGlyphStems = (value: string | number): GlyphStem[] => {
+  const groups = getStemGroups(value);
+
+  return groups.map((group, indexFromLeft) => {
+    const geometry = createStemGeometry(groups.length - 1 - indexFromLeft);
+    const stemValue = Number.parseInt(group, 10);
     const { stemBranches, isolatedBranches } = prepareDigitBranches(stemValue, geometry);
     const mainPath = buildUnifiedGlyphPathD(stemBranches, geometry);
     const isolatedPaths = isolatedBranches.map((branch) => pointsToSubpathD(branch)).join(' ');
+    const digits = getStemDigits(stemValue);
 
-    paths.push(isolatedPaths ? `${mainPath} ${isolatedPaths}` : mainPath);
+    return {
+      group,
+      value: stemValue,
+      digits,
+      pathD: isolatedPaths ? `${mainPath} ${isolatedPaths}` : mainPath,
+      staffPathD: `M ${geometry.stemX} ${geometry.topY} L ${geometry.stemX} ${geometry.bottomY}`,
+      quadrantPathD: Object.fromEntries(
+        QUADRANTS.map((quadrant) => [
+          quadrant,
+          getQuadrantPathD(digits[quadrant], quadrant, geometry),
+        ]),
+      ) as Record<QuadrantId, string>,
+    };
   });
-
-  return paths.join(' ');
 };
+
+export const getUnifiedGlyphPathD = (value: string | number): string =>
+  getGlyphStems(value)
+    .map((stem) => stem.pathD)
+    .join(' ');

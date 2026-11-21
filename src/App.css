@@ -18,6 +18,178 @@
   color-scheme: dark;
 }
 
+/*
+ * Depth system — one consistent light source from above. Each surface pairs a hairline
+ * edge with soft shadows; dark mode adds a faint top highlight instead of relying on
+ * shadows (which barely show on near-black).
+ */
+:root {
+  --edge: rgb(24 24 27 / 0.07);
+  --shadow-card:
+    0 0 0 1px var(--edge), 0 1px 2px -1px rgb(24 24 27 / 0.08),
+    0 4px 10px -4px rgb(24 24 27 / 0.06), 0 18px 36px -18px rgb(24 24 27 / 0.16);
+  --shadow-raised:
+    0 0 0 1px rgb(24 24 27 / 0.09), 0 1px 2px rgb(24 24 27 / 0.07),
+    0 2px 6px -2px rgb(24 24 27 / 0.06), inset 0 1px 0 rgb(255 255 255);
+  --shadow-raised-hover:
+    0 0 0 1px rgb(24 24 27 / 0.12), 0 2px 4px rgb(24 24 27 / 0.08),
+    0 6px 12px -4px rgb(24 24 27 / 0.08), inset 0 1px 0 rgb(255 255 255);
+  --shadow-pressed: 0 0 0 1px rgb(24 24 27 / 0.12), inset 0 1px 2px rgb(24 24 27 / 0.1);
+  --shadow-popover:
+    0 0 0 1px var(--edge), 0 4px 8px -2px rgb(24 24 27 / 0.06),
+    0 16px 32px -8px rgb(24 24 27 / 0.16);
+  --shadow-field:
+    0 0 0 1px rgb(24 24 27 / 0.12), inset 0 1px 2px rgb(24 24 27 / 0.06),
+    0 1px 0 rgb(255 255 255 / 0.8);
+  --shadow-field-focus:
+    0 0 0 1px rgb(24 24 27 / 0.55), 0 0 0 4px rgb(24 24 27 / 0.07),
+    inset 0 1px 2px rgb(24 24 27 / 0.06);
+  --surface-raised: linear-gradient(to bottom, #ffffff, #f8f8f9);
+  --backdrop-glow: rgb(255 255 255 / 0.95);
+}
+
+:root.dark {
+  --edge: rgb(255 255 255 / 0.07);
+  --shadow-card:
+    0 0 0 1px var(--edge), inset 0 1px 0 rgb(255 255 255 / 0.04), 0 1px 2px rgb(0 0 0 / 0.5),
+    0 18px 40px -18px rgb(0 0 0 / 0.8);
+  --shadow-raised:
+    0 0 0 1px rgb(255 255 255 / 0.09), inset 0 1px 0 rgb(255 255 255 / 0.07),
+    0 1px 2px rgb(0 0 0 / 0.5);
+  --shadow-raised-hover:
+    0 0 0 1px rgb(255 255 255 / 0.14), inset 0 1px 0 rgb(255 255 255 / 0.09),
+    0 2px 6px rgb(0 0 0 / 0.5);
+  --shadow-pressed: 0 0 0 1px rgb(255 255 255 / 0.1), inset 0 1px 3px rgb(0 0 0 / 0.5);
+  --shadow-popover:
+    0 0 0 1px rgb(255 255 255 / 0.09), inset 0 1px 0 rgb(255 255 255 / 0.05),
+    0 16px 40px -8px rgb(0 0 0 / 0.85);
+  --shadow-field: 0 0 0 1px rgb(255 255 255 / 0.09), inset 0 1px 3px rgb(0 0 0 / 0.45);
+  --shadow-field-focus:
+    0 0 0 1px rgb(255 255 255 / 0.5), 0 0 0 4px rgb(255 255 255 / 0.06),
+    inset 0 1px 3px rgb(0 0 0 / 0.45);
+  --surface-raised: linear-gradient(to bottom, #27272a, #202023);
+  --backdrop-glow: rgb(39 39 42 / 0.55);
+}
+
+@layer components {
+  /* Soft light from the top of the page. */
+  .app-backdrop {
+    background: radial-gradient(90% 55% at 50% -8%, var(--backdrop-glow), transparent 72%), #fafafa;
+  }
+
+  .dark .app-backdrop {
+    background: radial-gradient(90% 55% at 50% -8%, var(--backdrop-glow), transparent 72%), #09090b;
+  }
+
+  /* Cards: the glyph preview. */
+  .surface {
+    background-color: #ffffff;
+    box-shadow: var(--shadow-card);
+  }
+
+  .dark .surface {
+    background-color: #18181b;
+  }
+
+  /* Small raised buttons: lifts on hover, presses in when clicked. */
+  .surface-raised {
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-raised);
+    transition:
+      box-shadow 200ms ease,
+      transform 120ms ease,
+      color 200ms ease;
+  }
+
+  .surface-raised:hover {
+    box-shadow: var(--shadow-raised-hover);
+  }
+
+  .surface-raised:active,
+  .surface-raised[aria-expanded='true'] {
+    box-shadow: var(--shadow-pressed);
+    transform: translateY(0.5px);
+  }
+
+  /* Floating menus. */
+  .surface-popover {
+    background-color: #ffffff;
+    box-shadow: var(--shadow-popover);
+  }
+
+  .dark .surface-popover {
+    background-color: #1c1c1f;
+  }
+
+  /* Text fields sit slightly into the page. */
+  .field {
+    background-color: #ffffff;
+    box-shadow: var(--shadow-field);
+    transition: box-shadow 200ms ease;
+  }
+
+  .dark .field {
+    background-color: #131316;
+  }
+
+  .field:focus {
+    box-shadow: var(--shadow-field-focus);
+  }
+
+  /* Theme toggle: a groove in the page with a raised knob sitting in it. */
+  .toggle-track {
+    background-color: #e4e4e7;
+    box-shadow:
+      inset 0 1px 2px rgb(24 24 27 / 0.16),
+      inset 0 0 0 1px rgb(24 24 27 / 0.06),
+      0 1px 0 rgb(255 255 255 / 0.9);
+    transition: background-color 300ms ease;
+  }
+
+  .dark .toggle-track {
+    background-color: #0e0e10;
+    box-shadow:
+      inset 0 1px 3px rgb(0 0 0 / 0.75),
+      inset 0 0 0 1px rgb(255 255 255 / 0.07),
+      0 1px 0 rgb(255 255 255 / 0.05);
+  }
+
+  .toggle-knob {
+    background: linear-gradient(to bottom, #ffffff, #f1f1f3);
+    box-shadow:
+      0 0 0 0.5px rgb(24 24 27 / 0.12),
+      0 1px 1px rgb(24 24 27 / 0.08),
+      0 2px 6px rgb(24 24 27 / 0.16),
+      inset 0 -1px 1px rgb(24 24 27 / 0.05);
+    transition: box-shadow 200ms ease;
+  }
+
+  .dark .toggle-knob {
+    background: linear-gradient(to bottom, #55555e, #3c3c43);
+    box-shadow:
+      0 0 0 0.5px rgb(0 0 0 / 0.6),
+      0 1px 2px rgb(0 0 0 / 0.6),
+      0 3px 8px rgb(0 0 0 / 0.45),
+      inset 0 1px 0 rgb(255 255 255 / 0.16);
+  }
+
+  .theme-toggle:hover .toggle-knob {
+    box-shadow:
+      0 0 0 0.5px rgb(24 24 27 / 0.14),
+      0 1px 2px rgb(24 24 27 / 0.1),
+      0 3px 10px rgb(24 24 27 / 0.2),
+      inset 0 -1px 1px rgb(24 24 27 / 0.05);
+  }
+
+  .dark .theme-toggle:hover .toggle-knob {
+    box-shadow:
+      0 0 0 0.5px rgb(0 0 0 / 0.6),
+      0 2px 3px rgb(0 0 0 / 0.6),
+      0 4px 12px rgb(0 0 0 / 0.5),
+      inset 0 1px 0 rgb(255 255 255 / 0.2);
+  }
+}
+
 html,
 body,
 #root {
@@ -27,6 +199,9 @@ body,
 html {
   background-color: #fafafa;
   transition: background-color 300ms ease;
+  /* Reserve the scrollbar's space (on both sides, so the page stays centred) so the page
+     doesn't shift sideways when the scrollbar appears. */
+  scrollbar-gutter: stable both-edges;
 }
 
 html.dark {
@@ -38,32 +213,104 @@ body {
   background-color: inherit;
 }
 
-@supports (view-transition-name: root) {
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation-duration: 0.4s;
-    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  }
+/* Theme switch: a soft cross-fade of the whole page (started in useDarkMode.ts). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 380ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/*
+ * During the cross-fade the "new" view is live, so normal colour transitions would make it
+ * arrive half-changed. Pause them — except the toggle itself, which should still slide.
+ */
+.theme-switching,
+.theme-switching *:not(.theme-toggle, .theme-toggle *) {
+  transition: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
   html {
     transition: none;
   }
-
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation-duration: 0.01ms;
-  }
 }
 
 .glyph-preview-shell {
   overflow: hidden;
+}
+
+.glyph-preview-shell.is-animated {
   transition: width 650ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* When a wide glyph has to shrink to fit, ease the size change with the card. */
+.is-animated .glyph-preview-content {
+  transition:
+    width 650ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 650ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .glyph-preview-shell {
+  .glyph-preview-shell.is-animated,
+  .is-animated .glyph-preview-content {
     transition: none;
+  }
+}
+
+/* Share menu: a quick fade and drop-in from the button. */
+.share-menu:not([hidden]) {
+  animation: share-menu-in 140ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: top center;
+}
+
+@keyframes share-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .share-menu:not([hidden]) {
+    animation: none;
+  }
+}
+
+/* Theme toggle thumb: stretches toward where it's going, then settles like a droplet. */
+.droplet-right,
+.droplet-left {
+  animation: droplet 560ms cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+.droplet-right {
+  transform-origin: left center;
+}
+
+.droplet-left {
+  transform-origin: right center;
+}
+
+@keyframes droplet {
+  0% {
+    transform: scale(1, 1);
+  }
+  30% {
+    transform: scale(1.38, 0.82);
+  }
+  58% {
+    transform: scale(0.9, 1.08);
+  }
+  80% {
+    transform: scale(1.04, 0.97);
+  }
+  100% {
+    transform: scale(1, 1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .droplet-right,
+  .droplet-left {
+    animation: none;
   }
 }

@@ -25,14 +25,14 @@ Numbers longer than four digits are split into **4-digit groups from the right**
 
 | Constant           | Default                  | Meaning                      |
 | ------------------ | ------------------------ | ---------------------------- |
-| `MAX_STEM_COUNT`   | 6                        | Maximum stems (24 digits)    |
+| `MAX_STEM_COUNT`   | 3                        | Maximum stems (12 digits)    |
 | `STEM_DIGIT_COUNT` | 4                        | Digits per stem              |
 | `STEM_GAP`         | 18                       | Horizontal gap between stems |
 | `STEM_STRIDE`      | `GLYPH_WIDTH + STEM_GAP` | Horizontal offset per stem   |
 
 The rightmost stem uses `createStemGeometry(0)`. Each additional stem to the left uses `createStemGeometry(1)`, `createStemGeometry(2)`, etc., shifting all x-coordinates left by multiples of `STEM_STRIDE`.
 
-Partial left groups (e.g. `5` in a two-stem number) are **not** left-padded to four digits for quadrant mapping. Instead, `groupToStemValue` scales the value so digits land in the correct quadrants (e.g. `5` → 5000 within its stem).
+A partial leftmost group (e.g. `5` in `5,1234`) is drawn at its **true value**, exactly as if it were left-padded with zeros (`5` → `0005`, a single mark in the ones quadrant). This keeps every number's glyph unique: scaling short groups up instead (`5` → 5000) would make `5,1234` and `5000,1234` look identical. `getGlyphStems` returns the groups left to right with their digits and path data.
 
 ## Grid: six square cells per stem
 
@@ -111,18 +111,18 @@ The SVG viewBox is **tight to content**, not a fixed square. For `stemCount` ste
 
 Single-stem viewBox example: `-3 -3 66 96` (via `SVG_VIEWBOX`).
 
-**Frame padding** (`GLYPH_FRAME_PADDING`) is applied **outside** the viewBox — in the preview container (`GlyphPreview`) and when rasterizing to PNG (`svgToPng.ts`). This keeps the glyph at full size inside a fixed preview height while still providing breathing room.
+**Frame padding** (`GLYPH_FRAME_PADDING`) is applied **outside** the viewBox — in the preview container (`GlyphPreview`) and in exports (`glyphExport.ts`). On screen the preview is 12rem tall and shrinks proportionally when a wide multi-stem glyph would exceed the available width.
 
 Digit paths are authored in the **ones** template using anchor points on the stem (`STEM_X`), the outer edge (`OUTER_X`), and the upper-row top/bottom (`TOP_Y`, `UPPER_ROW_BOTTOM_Y`). Other quadrants mirror via `QUADRANT_TRANSFORMS` in `src/glyph/cistercian.ts`. Multi-stem stems translate x-coordinates via `createStemGeometry`.
 
 ## Export
 
-Copied PNGs preserve the SVG viewBox aspect ratio:
+Copy (PNG) and download (PNG or SVG) share one export SVG built by `buildExportSvg`:
 
-- Content height: **320 px** (`SVG_SIZE`)
-- Content width: scales with viewBox aspect ratio
-- Frame padding: `GLYPH_FRAME_PADDING` mapped proportionally to content height
-- Stroke color: read from computed `currentColor` and inlined on the cloned SVG
+- Content height: **320 px** (`SVG_SIZE`); width scales with viewBox aspect ratio
+- Frame padding: `GLYPH_FRAME_PADDING` baked into the export viewBox, proportional to content height
+- Stroke color: the current theme colour, converted to hex so any SVG consumer can read it
+- PNG: the export SVG rasterized onto a transparent canvas at its pixel size
 
 ## Summary
 
@@ -135,9 +135,10 @@ Copied PNGs preserve the SVG viewBox aspect ratio:
 | Lower encoding             | **Bottom two cells** (thousands, hundreds) |
 | Middle row                 | Stem only; separates upper / lower         |
 | Multi-stem                 | 4-digit groups from the right, expand left |
-| Max range                  | 6 stems × 4 digits = **24 digits**         |
+| Partial leftmost group     | Drawn at its true value (`5` → `0005`)     |
+| Max range                  | 3 stems × 4 digits = **12 digits**         |
 | SVG viewBox                | Tight to content + `VIEWBOX_INSET`         |
 | Outer padding              | `GLYPH_FRAME_PADDING` in layout/export     |
-| Copied PNG                 | 320 px tall; width scales with stems       |
+| Exported PNG / SVG         | 320 px glyph + padding; width scales       |
 | Digit construction         | Horizontal, diagonal, vertical segments    |
 | Cross-quadrant consistency | Same segments, reflected orientations      |
